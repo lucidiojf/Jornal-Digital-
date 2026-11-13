@@ -46,7 +46,10 @@ jobs:
               ('Patu em Foco', 'https://patu-emfoco.blogspot.com/feeds/posts/default'),
               ('Política Pauferrense', 'https://politicapauferrense.blogspot.com/feeds/posts/default'),
               ('RN Política em Dia', 'https://feeds.feedburner.com/RnPoliticaEmDia2012'),
-              ('Tribuna do Norte', 'https://tribunadonorte.com.br/feed/')
+              ('Tribuna do Norte', 'https://tribunadonorte.com.br/feed/'),
+              ('Passando na Hora', 'https://passandonahora.com.br/feed/'),
+              ('Portal Diário do RN', 'https://diariodorn.com.br/feed/'),
+              ('BNews Natal', 'https://www.bnewsnatal.com.br/feed/')
           ]
           enviados = set(open('enviados.txt').read().splitlines()) if os.path.exists('enviados.txt') else set()
           novos = list(enviados)
