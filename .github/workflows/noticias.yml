@@ -2,33 +2,72 @@ name: Jornal Digital Telegram
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Roda automaticamente a cada 30 minutos
-  workflow_dispatch: # Permite rodar manualmente clicando em um botão
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   enviar-noticias:
     runs-on: ubuntu-latest
     steps:
-      - name: Enviar RSS para o Telegram
-        uses: c-hive/rss-to-telegram-action@v1
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar ambiente
+        uses: actions/setup-python@v5
         with:
-          telegram-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
-          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          rss-feeds: |
-            https://g1.globo.com/rss/g1/
-            https://www.cnnbrasil.com.br/feed/
-            https://feeds.folha.uol.com.br/emcimadahora/rss091.xml
-            https://rss.uol.com.br/feed/noticias.xml
-            https://sbtnews.sbt.com.br/feed
-            https://www.correiobraziliense.com.br/rss/ultimas-noticias/rss.xml
-            https://veja.abril.com.br/feed
-            https://istoe.com.br/feed/
-            https://agorarn.com.br/feed/
-            https://www.blogdobg.com.br/feed/
-            https://robsonpiresxerife.com/feed/
-            https://www.jornalfolharegional.com.br/feed/
-            https://patu-emfoco.blogspot.com/feeds/posts/default
-            https://politicapauferrense.blogspot.com/feeds/posts/default
-            https://feeds.feedburner.com/RnPoliticaEmDia2012
-            https://tribunadonorte.com.br/feed/
-            
+          python-version: '3.11'
+
+      - name: Buscar e enviar RSS
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          pip install feedparser requests
+          python -c "
+          import os, feedparser, requests
+          TOKEN = os.environ['TELEGRAM_TOKEN']
+          CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+          FEEDS = [
+              ('G1', 'https://g1.globo.com/rss/g1/'),
+              ('CNN Brasil', 'https://www.cnnbrasil.com.br/feed/'),
+              ('Folha', 'https://feeds.folha.uol.com.br/emcimadahora/rss091.xml'),
+              ('UOL', 'https://rss.uol.com.br/feed/noticias.xml'),
+              ('SBT News', 'https://sbtnews.sbt.com.br/feed'),
+              ('Correio Braziliense', 'https://www.correiobraziliense.com.br/rss/ultimas-noticias/rss.xml'),
+              ('Veja', 'https://veja.abril.com.br/feed'),
+              ('IstoÉ', 'https://istoe.com.br/feed/'),
+              ('Agora RN', 'https://agorarn.com.br/feed/'),
+              ('Blog do BG', 'https://www.blogdobg.com.br/feed/'),
+              ('Robson Pires', 'https://robsonpiresxerife.com/feed/'),
+              ('Folha Regional', 'https://www.jornalfolharegional.com.br/feed/'),
+              ('Patu em Foco', 'https://patu-emfoco.blogspot.com/feeds/posts/default'),
+              ('Política Pauferrense', 'https://politicapauferrense.blogspot.com/feeds/posts/default'),
+              ('RN Política em Dia', 'https://feeds.feedburner.com/RnPoliticaEmDia2012'),
+              ('Tribuna do Norte', 'https://tribunadonorte.com.br/feed/')
+          ]
+          enviados = set(open('enviados.txt').read().splitlines()) if os.path.exists('enviados.txt') else set()
+          novos = list(enviados)
+          for nome, url in FEEDS:
+              try:
+                  feed = feedparser.parse(url)
+                  for entry in feed.entries[:2]:
+                      if entry.link not in enviados:
+                          msg = f'📰 <b>{nome}</b>\n{entry.title}\n<a href=\"{entry.link}\">Ler notícia</a>'
+                          requests.post(f'https://api.telegram.org/bot{TOKEN}/sendMessage', data={'chat_id': CHAT_ID, 'text': msg, 'parse_mode': 'HTML', 'disable_web_page_preview': True})
+                          novos.append(entry.link)
+              except Exception as e:
+                  print(f'Erro em {nome}: {e}')
+          open('enviados.txt', 'w').write('\n'.join(novos[-500:]))
+          "
+
+      - name: Salvar histórico
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add enviados.txt
+          git commit -m "Atualiza enviados" || exit 0
+          git push
+          
