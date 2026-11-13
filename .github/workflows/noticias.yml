@@ -28,8 +28,8 @@ jobs:
           pip install feedparser requests
           python -c "
           import os, feedparser, requests
-          TOKEN = os.environ['TELEGRAM_TOKEN']
-          CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+          TOKEN = os.environ['TELEGRAM_TOKEN'].strip()
+          CHAT_ID = os.environ['TELEGRAM_CHAT_ID'].strip()
           FEEDS = [
               ('G1', 'https://g1.globo.com/rss/g1/'),
               ('CNN Brasil', 'https://www.cnnbrasil.com.br/feed/'),
@@ -56,7 +56,10 @@ jobs:
                   for entry in feed.entries[:2]:
                       if entry.link not in enviados:
                           msg = f'📰 <b>{nome}</b>\n{entry.title}\n<a href=\"{entry.link}\">Ler notícia</a>'
-                          requests.post(f'https://api.telegram.org/bot{TOKEN}/sendMessage', data={'chat_id': CHAT_ID, 'text': msg, 'parse_mode': 'HTML', 'disable_web_page_preview': True})
+                          r = requests.post(f'https://api.telegram.org/bot{TOKEN}/sendMessage', data={'chat_id': CHAT_ID, 'text': msg, 'parse_mode': 'HTML', 'disable_web_page_preview': True})
+                          if r.status_code != 200:
+                              print('ERRO TELEGRAM:', r.text)
+                              exit(1)
                           novos.append(entry.link)
               except Exception as e:
                   print(f'Erro em {nome}: {e}')
