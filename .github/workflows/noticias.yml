@@ -59,7 +59,7 @@ jobs:
                   for entry in feed.entries[:2]:
                       if entry.link not in enviados:
                           msg = f'📰 <b>{nome}</b>\n{entry.title}\n<a href=\"{entry.link}\">Ler notícia</a>'
-                          r = requests.post(f'https://api.telegram.org/bot{TOKEN}/sendMessage', data={'chat_id': CHAT_ID, 'text': msg, 'parse_mode': 'HTML', 'disable_web_page_preview': True})
+                          r = requests.post(f'https://api.telegram.org/bot{TOKEN}/sendMessage', data={'chat_id': CHAT_ID, 'text': msg, 'parse_mode': 'HTML', 'disable_web_page_preview': False})
                           if r.status_code != 200:
                               print('ERRO TELEGRAM:', r.text)
                               exit(1)
